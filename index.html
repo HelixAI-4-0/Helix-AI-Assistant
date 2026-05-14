@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Helix Assistant</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+:root{
+  --bg:#08080f;
+  --s1:rgba(255,255,255,0.05);
+  --s2:rgba(255,255,255,0.09);
+  --b1:rgba(255,255,255,0.07);
+  --b2:rgba(255,255,255,0.13);
+  --p:#7c6ff7;
+  --p2:#a78bfa;
+  --p3:#c4b5fd;
+  --glow:rgba(124,111,247,0.4);
+  --green:#34d399;
+  --red:#f87171;
+  --amber:#fbbf24;
+  --text:#eeeef8;
+  --muted:#8888b0;
+  --dim:#4c4c74;
+}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,sans-serif;}
+
+/* bg */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 80% 50% at 70% -10%,rgba(100,80,220,.14),transparent),
+             radial-gradient(ellipse 60% 40% at -10% 90%,rgba(50,30,140,.1),transparent);}
+
+/* layout */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;z-index:1;
+  transition:opacity .25s,transform .25s;}
+.screen.gone{opacity:0;pointer-events:none;transform:translateY(12px);}
+
+/* topbar */
+.bar{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:52px 22px 0;flex-shrink:0;
+}
+.brand{display:flex;align-items:center;gap:11px;}
+.logo{
+  width:36px;height:36px;border-radius:50%;overflow:hidden;
+  border:1.5px solid rgba(167,139,250,.25);
+  background:#111;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.logo img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.bname{font-size:15px;font-weight:700;letter-spacing:.4px;
+  background:linear-gradient(110deg,var(--p3),var(--p2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.ibtn{
+  width:38px;height:38px;border-radius:50%;background:var(--s1);
+  border:1px solid var(--b1);color:var(--muted);font-size:17px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.ibtn:active{background:var(--s2);}
+
+/* orb zone */
+.orb-zone{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;
+  padding:24px 0 0;}
+
+.orb-wrap{position:relative;width:180px;height:180px;}
+
+/* rings */
+.r{position:absolute;border-radius:50%;border:1.5px solid transparent;pointer-events:none;}
+.r1{inset:0;border-top-color:rgba(124,111,247,.5);border-right-color:rgba(167,139,250,.15);
+  animation:rs 3.5s linear infinite;}
+.r2{inset:16px;border-bottom-color:rgba(167,139,250,.4);border-left-color:rgba(124,111,247,.12);
+  animation:rs 2.6s linear infinite reverse;}
+.r3{inset:32px;border-right-color:rgba(196,181,253,.25);border-top-color:rgba(124,111,247,.1);
+  animation:rs 5s linear infinite;}
+@keyframes rs{to{transform:rotate(360deg)}}
+
+/* core */
+.orb{
+  position:absolute;inset:44px;border-radius:50%;cursor:pointer;
+  background:radial-gradient(circle at 36% 32%,var(--p3),var(--p) 50%,#2d1b8a);
+  box-shadow:0 0 36px var(--glow),0 0 72px rgba(124,111,247,.12);
+  display:flex;align-items:center;justify-content:center;
+  transition:box-shadow .35s,transform .15s;
+}
+.orb:active{transform:scale(.93);}
+
+/* logo inside orb */
+.orb-logo{
+  width:52px;height:52px;border-radius:50%;overflow:hidden;
+  filter:brightness(1.15) drop-shadow(0 2px 8px rgba(0,0,0,.5));
+}
+.orb-logo img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+
+/* states */
+.orb.listening{
+  background:radial-gradient(circle at 36% 32%,var(--p3),var(--p) 50%,#2d1b8a);
+  animation:op .65s ease-in-out infinite alternate;
+  box-shadow:0 0 56px rgba(124,111,247,.75),0 0 0 22px rgba(124,111,247,.08);
+}
+.orb.thinking{
+  animation:oth 1.4s ease-in-out infinite;
+  box-shadow:0 0 36px rgba(251,191,36,.3),0 0 72px rgba(251,191,36,.08);
+  background:radial-gradient(circle at 36% 32%,#fde68a,var(--amber) 50%,#78350f);
+}
+.orb.speaking{
+  background:radial-gradient(circle at 36% 32%,#a7f3d0,var(--green) 50%,#064e3b);
+  box-shadow:0 0 48px rgba(52,211,153,.5),0 0 0 18px rgba(52,211,153,.06);
+  animation:op .5s ease-in-out infinite alternate;
+}
+@keyframes op{from{transform:scale(.93)}to{transform:scale(1.07)}}
+@keyframes oth{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+
+/* waveform */
+.wave{display:flex;gap:4px;align-items:center;height:32px;margin-top:14px;
+  opacity:0;transition:opacity .3s;}
+.wave.on{opacity:1;}
+.wb{width:3px;border-radius:2px;background:linear-gradient(to top,var(--p),var(--p3));
+  height:5px;animation:wba .45s ease-in-out infinite alternate;}
+.wb:nth-child(1){animation-delay:.00s}
+.wb:nth-child(2){animation-delay:.07s}
+.wb:nth-child(3){animation-delay:.14s}
+.wb:nth-child(4){animation-delay:.21s}
+.wb:nth-child(5){animation-delay:.14s}
+.wb:nth-child(6){animation-delay:.07s}
+.wb:nth-child(7){animation-delay:.00s}
+@keyframes wba{from{height:5px}to{height:26px}}
+
+/* status */
+.status{font-size:12.5px;color:var(--muted);margin-top:9px;text-align:center;
+  min-height:17px;letter-spacing:.2px;}
+
+/* chat */
+.chat{
+  flex:1;width:100%;max-width:430px;
+  overflow-y:auto;padding:14px 20px 0;
+  display:flex;flex-direction:column;gap:9px;min-height:0;
+  scrollbar-width:none;
+}
+.chat::-webkit-scrollbar{display:none;}
+
+.idle{text-align:center;padding:20px 16px 0;}
+.idle-h{font-size:27px;font-weight:800;letter-spacing:-.5px;
+  background:linear-gradient(110deg,var(--text),var(--p3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.idle-s{font-size:13.5px;color:var(--muted);margin-top:5px;}
+
+.bub{
+  padding:11px 15px;border-radius:18px;font-size:14px;line-height:1.55;
+  max-width:82%;word-wrap:break-word;
+  animation:bin .22s ease;
+}
+@keyframes bin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.bub.u{background:linear-gradient(135deg,var(--p),#5b21b6);
+  color:#fff;align-self:flex-end;border-bottom-right-radius:4px;
+  box-shadow:0 3px 16px rgba(124,111,247,.28);}
+.bub.a{background:var(--s2);border:1px solid var(--b1);
+  color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;}
+.td{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--muted);margin:0 2px;animation:tda 1s ease-in-out infinite;}
+.td:nth-child(2){animation-delay:.16s}.td:nth-child(3){animation-delay:.32s}
+@keyframes tda{0%,80%,100%{opacity:.2;transform:scale(.7)}40%{opacity:1;transform:scale(1)}}
+
+/* chips */
+.chips-row{width:100%;padding:8px 0 6px;flex-shrink:0;overflow:hidden;}
+.chips{display:flex;gap:7px;padding:0 20px;overflow-x:auto;scrollbar-width:none;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{flex-shrink:0;padding:7px 13px;border-radius:20px;background:var(--s1);
+  border:1px solid var(--b1);color:var(--text);font-size:12px;cursor:pointer;
+  white-space:nowrap;transition:background .15s;}
+.chip:active{background:rgba(124,111,247,.22);border-color:var(--p);}
+
+/* bottom */
+.bot{
+  width:100%;flex-shrink:0;
+  padding:8px 24px;
+  padding-bottom:max(16px,env(safe-area-inset-bottom,16px));
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  background:linear-gradient(to top,var(--bg) 50%,transparent);
+}
+.mic{
+  width:68px;height:68px;border-radius:50%;
+  background:linear-gradient(135deg,var(--p),var(--p2));
+  border:none;color:#fff;font-size:26px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;box-shadow:0 6px 26px var(--glow);
+  transition:transform .12s;flex-shrink:0;
+}
+.mic:active{transform:scale(.88);}
+.mic.on{background:linear-gradient(135deg,#ef4444,#dc2626);
+  box-shadow:0 6px 26px rgba(239,68,68,.42);}
+.sbt{width:44px;height:44px;border-radius:50%;background:var(--s1);
+  border:1px solid var(--b1);color:var(--muted);font-size:17px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.sbt:active{background:var(--s2);}
+
+/* text input */
+.tinwrap{
+  width:100%;max-width:430px;
+  display:none;align-items:center;gap:9px;
+  padding:0 20px 8px;flex-shrink:0;
+}
+.tinwrap.show{display:flex;}
+.tin{flex:1;background:var(--s2);border:1px solid var(--b2);
+  border-radius:22px;padding:10px 17px;font-size:13.5px;
+  color:var(--text);outline:none;caret-color:var(--p2);}
+.tin::placeholder{color:var(--dim);}
+.tsend{width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  background:var(--p);border:none;color:#fff;font-size:17px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;}
+
+/* settings screen */
+#sset{
+  justify-content:flex-start;
+  padding:0 20px 20px;
+  padding-top:calc(env(safe-area-inset-top,0px) + 56px);
+  overflow-y:auto;gap:13px;
+}
+.bback{
+  position:fixed;top:calc(env(safe-area-inset-top,0px)+10px);left:18px;
+  width:36px;height:36px;border-radius:50%;background:var(--s2);
+  border:1px solid var(--b2);color:var(--text);font-size:18px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;
+}
+.stitle{font-size:20px;font-weight:800;letter-spacing:-.3px;
+  align-self:flex-start;padding:0 4px;}
+.sec{width:100%;background:var(--s1);border:1px solid var(--b1);
+  border-radius:16px;overflow:hidden;}
+.srow{display:flex;align-items:center;justify-content:space-between;
+  padding:13px 16px;border-bottom:1px solid var(--b1);gap:12px;cursor:pointer;}
+.srow:last-child{border-bottom:none;}
+.srow:active{background:var(--s2);}
+.sl{font-size:13.5px;flex:1;}
+.ss{font-size:11px;color:var(--muted);margin-top:2px;}
+.tog{width:42px;height:24px;border-radius:12px;background:var(--b2);
+  position:relative;transition:background .2s;cursor:pointer;flex-shrink:0;}
+.tog.on{background:var(--p);}
+.tog::after{content:'';position:absolute;top:2.5px;left:2.5px;
+  width:19px;height:19px;border-radius:50%;background:#fff;transition:transform .2s;}
+.tog.on::after{transform:translateX(18px);}
+sel-s{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--b2);
+  padding:5px 9px;border-radius:10px;font-size:12px;outline:none;}
+select{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--b2);
+  padding:5px 9px;border-radius:10px;font-size:12px;outline:none;}
+select option{background:#14142a;}
+.sfoo{font-size:10.5px;color:var(--dim);text-align:center;line-height:1.7;padding:4px 0;}
+
+/* toast */
+.toast{
+  position:fixed;top:calc(env(safe-area-inset-top,0px)+52px);
+  left:50%;transform:translateX(-50%);
+  background:rgba(16,16,36,.92);border:1px solid var(--b2);
+  color:var(--text);font-size:12.5px;padding:8px 16px;border-radius:20px;
+  z-index:999;opacity:0;pointer-events:none;transition:opacity .25s;
+  white-space:nowrap;backdrop-filter:blur(12px);
+}
+.toast.on{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- ════════ MAIN ════════ -->
+<div class="screen" id="smain">
+  <div class="bar">
+    <div class="brand">
+      <div class="logo"><img id="topLogo" src="helix_logo.png" alt="H"></div>
+      <span class="bname">Helix Assistant</span>
+    </div>
+    <div class="ibtn" onclick="openSettings()">⚙</div>
+  </div>
+
+  <div class="orb-zone">
+    <div class="orb-wrap" onclick="toggleListen()">
+      <div class="r r1"></div>
+      <div class="r r2"></div>
+      <div class="r r3"></div>
+      <div class="orb" id="orb">
+        <div class="orb-logo"><img src="helix_logo.png" alt="H" onerror="this.style.display='none'"></div>
+      </div>
+    </div>
+    <div class="wave" id="wave">
+      <div class="wb"></div><div class="wb"></div><div class="wb"></div>
+      <div class="wb"></div><div class="wb"></div><div class="wb"></div>
+      <div class="wb"></div>
+    </div>
+    <div class="status" id="stxt">Tap to speak</div>
+  </div>
+
+  <div class="chat" id="chat">
+    <div class="idle" id="idle">
+      <div class="idle-h">Hey, I'm Helix</div>
+      <div class="idle-s">Your AI assistant — ask me anything</div>
+    </div>
+  </div>
+
+  <div class="chips-row">
+    <div class="chips">
+      <div class="chip" onclick="qs('What time is it?')">🕐 Time</div>
+      <div class="chip" onclick="qs('What\'s today\'s date?')">📅 Date</div>
+      <div class="chip" onclick="appAction('youtube')">▶ YouTube</div>
+      <div class="chip" onclick="appAction('whatsapp')">💬 WhatsApp</div>
+      <div class="chip" onclick="appAction('spotify')">🎵 Spotify</div>
+      <div class="chip" onclick="appAction('maps')">🗺 Maps</div>
+      <div class="chip" onclick="appAction('gmail')">✉ Gmail</div>
+      <div class="chip" onclick="appAction('instagram')">📸 Instagram</div>
+      <div class="chip" onclick="appAction('camera')">📷 Camera</div>
+      <div class="chip" onclick="qs('What can you do?')">❓ Help</div>
+    </div>
+  </div>
+
+  <div class="tinwrap" id="tinwrap">
+    <input class="tin" id="tin" placeholder="Type a message…"
+      onkeydown="if(event.key==='Enter')sendTyped()">
+    <div class="tsend" onclick="sendTyped()">➤</div>
+  </div>
+
+  <div class="bot">
+    <div class="sbt" onclick="toggleKb()">⌨</div>
+    <button class="mic" id="micbtn" onclick="toggleListen()">🎙</button>
+    <div class="sbt" onclick="clearChat()">🗑</div>
+  </div>
+</div>
+
+<!-- ════════ SETTINGS ════════ -->
+<div class="screen gone" id="sset">
+  <div class="bback" onclick="closeSettings()">←</div>
+  <div class="stitle">Settings</div>
+
+  <div class="sec">
+    <div class="srow">
+      <div><div class="sl">Auto-speak replies</div></div>
+      <div class="tog on" id="astog" onclick="toggleAS()"></div>
+    </div>
+    <div class="srow">
+      <div><div class="sl">AI Model</div><div class="ss">via Pollinations.ai · free</div></div>
+      <select id="mdl">
+        <option value="openai-large">GPT-4o</option>
+        <option value="openai">GPT-4o mini</option>
+        <option value="mistral">Mistral Large</option>
+        <option value="deepseek">DeepSeek R1</option>
+        <option value="qwen-coder">Qwen 2.5</option>
+      </select>
+    </div>
+    <div class="srow">
+      <div class="sl">Language</div>
+      <select id="lng">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="it-IT">Italiano</option>
+        <option value="es-ES">Español</option>
+        <option value="fr-FR">Français</option>
+        <option value="de-DE">Deutsch</option>
+      </select>
+    </div>
+    <div class="srow" onclick="testVoice()">
+      <div class="sl">Test voice</div>
+      <span style="color:var(--p2)">▶</span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="srow" onclick="clearChat();closeSettings()">
+      <div class="sl" style="color:var(--red)">Clear conversation</div>
+      <span>🗑</span>
+    </div>
+  </div>
+
+  <div class="sfoo">Helix Assistant · Pollinations.ai + Android TTS<br>Free · No account · No tracking</div>
+</div>
+
+<div class="toast" id="tst"></div>
+
+<script>
+// ─── STATE ───
+const history = [];
+let listening = false, autoSpeak = true;
+const bridge = window.HelixBridge;
+const native = !!bridge;
+
+// ─── BRIDGE CALLBACKS ───
+window.onBridgeReady = () => toast('Helix ready');
+window.onPermissionsGranted = () => toast('Mic ready');
+
+window.onListenStart  = () => setOrb('listening');
+window.onListenEnd    = () => {};
+window.onPartialResult = t => { setStatus(t); };
+window.onSpeechResult = t => {
+  stopListen();
+  sendQuery(t);
+};
+window.onSpeechError = code => {
+  stopListen();
+  const msgs = {
+    no_match:'Didn\'t catch that — try again',
+    timeout:'No speech detected',
+    audio:'Mic error',
+    no_permission:'Mic permission denied',
+    busy:'Mic busy — try again',
+    unavailable:'Speech recognition unavailable'
+  };
+  toast(msgs[code] || 'Error: '+code);
+};
+window.onTTSStart = () => setOrb('speaking');
+window.onTTSDone  = () => { if(!listening) setOrb('idle'); };
+window.onTimerDone = () => {
+  addBubble('assistant', '⏰ Timer done!');
+  speak('Your timer is done!');
+};
+
+// ─── LISTEN ───
+function startListen() {
+  if(native) {
+    const lang = document.getElementById('lng').value;
+    bridge.startListening(lang);
+    listening = true;
+    document.getElementById('micbtn').classList.add('on');
+    document.getElementById('micbtn').textContent = '⏹';
+    document.getElementById('wave').classList.add('on');
+    setStatus('Listening…');
+    bridge.vibrate(40);
+  } else {
+    webSpeechListen();
+  }
+}
+
+function stopListen() {
+  listening = false;
+  if(native) bridge.stopListening();
+  document.getElementById('micbtn').classList.remove('on');
+  document.getElementById('micbtn').textContent = '🎙';
+  document.getElementById('wave').classList.remove('on');
+  if(!document.getElementById('orb').classList.contains('speaking'))
+    setOrb('idle');
+  setStatus('Tap to speak');
+}
+
+function toggleListen() {
+  listening ? stopListen() : startListen();
+}
+
+// ─── WEB SPEECH FALLBACK ───
+function webSpeechListen() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) { toast('Speech not supported'); return; }
+  const r = new SR();
+  r.lang = document.getElementById('lng').value;
+  r.interimResults = true;
+  r.onstart = () => {
+    listening = true;
+    setOrb('listening');
+    document.getElementById('micbtn').classList.add('on');
+    document.getElementById('micbtn').textContent = '⏹';
+    document.getElementById('wave').classList.add('on');
+    setStatus('Listening…');
+  };
+  r.onresult = e => {
+    const t = e.results[0][0].transcript;
+    setStatus(t);
+    if(e.results[0].isFinal) { stopListen(); sendQuery(t); }
+  };
+  r.onerror = e => { stopListen(); toast('Mic error: '+e.error); };
+  r.onend = () => stopListen();
+  r.start();
+}
+
+// ─── SPEAK ───
+function speak(text) {
+  if(!autoSpeak) return;
+  const clean = text.replace(/[*#`_~]/g,'').replace(/\{[^}]+\}/g,'').trim().slice(0,500);
+  if(!clean) return;
+  if(native) {
+    bridge.speak(clean);
+  } else {
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = document.getElementById('lng').value;
+    u.rate = 1.05;
+    u.onstart = () => setOrb('speaking');
+    u.onend = () => { if(!listening) setOrb('idle'); };
+    window.speechSynthesis?.cancel();
+    window.speechSynthesis?.speak(u);
+  }
+}
+
+// ─── QUERY ───
+const SYS = `You are Helix Assistant, a voice AI assistant on Android.
+Keep replies SHORT (1-3 sentences max) — they will be spoken aloud. Be direct and helpful.
+
+For ACTIONS, reply with a JSON object on the FIRST line, then your spoken reply:
+
+Open app:     {"action":"app","pkg":"com.google.android.youtube","url":"https://youtube.com"}
+Web search:   {"action":"search","q":"query here"}
+Maps:         {"action":"maps","place":"place name"}
+Phone call:   {"action":"call","number":"123456789"}
+SMS:          {"action":"sms","number":"123","msg":"text"}
+Timer:        {"action":"timer","s":60,"label":"Timer done"}
+
+App packages:
+youtube→com.google.android.youtube
+whatsapp→com.whatsapp
+spotify→com.spotify.music
+instagram→com.instagram.android
+twitter→com.twitter.android
+gmail→com.google.android.gm
+maps→com.google.android.apps.maps
+chrome→com.android.chrome
+camera→com.android.camera2
+settings→com.android.settings
+telegram→org.telegram.messenger
+tiktok→com.zhiliaoapp.musically
+netflix→com.netflix.mediaclient
+reddit→com.reddit.frontpage
+amazon→com.amazon.mShop.android.shopping
+
+If no action needed, just reply normally — no JSON.`;
+
+async function sendQuery(q) {
+  if(!q?.trim()) return;
+  const idle = document.getElementById('idle');
+  if(idle) idle.remove();
+
+  addBubble('user', q);
+  history.push({role:'user',content:q});
+  setOrb('thinking');
+  setStatus('Thinking…');
+  const t = addTyping();
+
+  const local = handleLocal(q);
+  if(local !== null) {
+    t.remove();
+    addBubble('assistant', local);
+    history.push({role:'assistant',content:local});
+    setOrb('idle'); setStatus('Tap to speak');
+    speak(local);
+    return;
+  }
+
+  try {
+    const model = document.getElementById('mdl').value;
+    const res = await fetch('https://text.pollinations.ai/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model,
+        messages:[{role:'system',content:SYS},...history],
+        seed:Date.now()%9999
+      })
+    });
+    if(!res.ok) throw new Error(res.status);
+    const raw = await res.text();
+    let reply;
+    try{ const j=JSON.parse(raw); reply=j.choices?.[0]?.message?.content??j.content??raw; }
+    catch{ reply=raw; }
+
+    history.push({role:'assistant',content:reply});
+    t.remove();
+
+    let spoken = reply, action = null;
+    const lines = reply.trim().split('\n');
+    try{
+      const fl = lines[0].trim();
+      if(fl.startsWith('{') && fl.includes('"action"')){
+        action = JSON.parse(fl);
+        spoken = lines.slice(1).join('\n').trim() || actionText(action);
+      }
+    } catch(e){}
+
+    if(action) doAction(action);
+    addBubble('assistant', spoken);
+    setOrb('idle'); setStatus('Tap to speak');
+    speak(spoken);
+
+  } catch(e) {
+    t.remove();
+    const err = 'Connection failed. Check your internet.';
+    addBubble('assistant', err);
+    setOrb('idle'); setStatus('Tap to speak');
+    speak(err);
+  }
+}
+
+function handleLocal(q) {
+  const lc = q.toLowerCase();
+  if(/\b(what('s| is) the time|what time is it|current time|che ore sono)\b/.test(lc))
+    return 'It\'s ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + '.';
+  if(/\b(what('s| is)? (today'?s? )?(date|day)|what day|che giorno)\b/.test(lc))
+    return 'Today is ' + new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) + '.';
+  const tm = lc.match(/(?:set\s+(?:a\s+)?)?timer\s+(?:for\s+)?(\d+)\s*(sec|second|min|minute|hour|hr)/i);
+  if(tm) {
+    let s = parseInt(tm[1]);
+    const u = tm[2].toLowerCase();
+    if(u.startsWith('min')) s*=60; if(u.startsWith('h')) s*=3600;
+    if(native) bridge.setTimer(s, 'Timer done!');
+    else setTimeout(()=>{ addBubble('assistant','⏰ Timer done!'); speak('Your timer is done!'); }, s*1000);
+    return `Timer set for ${tm[1]} ${tm[2]}${tm[1]!=='1'?'s':''}.`;
+  }
+  return null;
+}
+
+function doAction(a) {
+  setTimeout(() => {
+    if(!native) { window.open(a.url||'https://google.com','_blank'); return; }
+    if(a.action==='app')    bridge.openApp(a.pkg, a.url||'');
+    else if(a.action==='search') bridge.openSearch(a.q);
+    else if(a.action==='maps')   bridge.openMaps(a.place);
+    else if(a.action==='call')   bridge.call(a.number);
+    else if(a.action==='sms')    bridge.sendSMS(a.number, a.msg||'');
+    else if(a.action==='timer')  bridge.setTimer(a.s, a.label||'Timer done!');
+  }, 400);
+}
+
+function actionText(a) {
+  if(a.action==='app')    return `Opening that for you.`;
+  if(a.action==='search') return `Searching for ${a.q}.`;
+  if(a.action==='maps')   return `Opening Maps for ${a.place}.`;
+  if(a.action==='call')   return `Calling now.`;
+  if(a.action==='timer')  return `Timer set for ${a.s} seconds.`;
+  return 'Done.';
+}
+
+// ─── QUICK CHIPS ───
+const APP_ACTIONS = {
+  youtube: {pkg:'com.google.android.youtube', url:'https://youtube.com'},
+  whatsapp:{pkg:'com.whatsapp', url:'https://web.whatsapp.com'},
+  spotify: {pkg:'com.spotify.music', url:'https://open.spotify.com'},
+  maps:    {pkg:'com.google.android.apps.maps', url:'https://maps.google.com'},
+  gmail:   {pkg:'com.google.android.gm', url:'https://mail.google.com'},
+  instagram:{pkg:'com.instagram.android', url:'https://instagram.com'},
+  camera:  {pkg:'com.android.camera2', url:''},
+};
+function appAction(name) {
+  const a = APP_ACTIONS[name];
+  if(!a) return;
+  if(native) bridge.openApp(a.pkg, a.url);
+  else window.open(a.url,'_blank');
+  addBubble('user','Open '+name);
+  const idle = document.getElementById('idle');
+  if(idle) idle.remove();
+  const r = `Opening ${name.charAt(0).toUpperCase()+name.slice(1)}.`;
+  addBubble('assistant', r);
+  speak(r);
+}
+
+// ─── UI HELPERS ───
+function setOrb(s) {
+  const o = document.getElementById('orb');
+  o.className = 'orb' + (s!=='idle' ? ' '+s : '');
+}
+function setStatus(t) { document.getElementById('stxt').textContent = t; }
+function addBubble(role, text) {
+  const c = document.getElementById('chat');
+  const d = document.createElement('div');
+  d.className = 'bub ' + (role==='user'?'u':'a');
+  d.textContent = text;
+  c.appendChild(d);
+  d.scrollIntoView({behavior:'smooth'});
+}
+function addTyping() {
+  const c = document.getElementById('chat');
+  const d = document.createElement('div');
+  d.className = 'bub a';
+  d.innerHTML = '<span class="td"></span><span class="td"></span><span class="td"></span>';
+  c.appendChild(d); d.scrollIntoView({behavior:'smooth'});
+  return d;
+}
+function toast(msg) {
+  const el = document.getElementById('tst');
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>el.classList.remove('on'), 2400);
+}
+function qs(q) { sendQuery(q); }
+function sendTyped() {
+  const el = document.getElementById('tin');
+  const v = el.value.trim(); if(!v) return;
+  el.value = ''; sendQuery(v);
+}
+function toggleKb() {
+  const w = document.getElementById('tinwrap');
+  w.classList.toggle('show');
+  if(w.classList.contains('show')) document.getElementById('tin').focus();
+}
+function clearChat() {
+  history.length = 0;
+  document.getElementById('chat').innerHTML =
+    '<div class="idle" id="idle"><div class="idle-h">Hey, I\'m Helix</div><div class="idle-s">Your AI assistant — ask me anything</div></div>';
+  toast('Cleared');
+}
+function openSettings()  { document.getElementById('sset').classList.remove('gone'); }
+function closeSettings() { document.getElementById('sset').classList.add('gone'); }
+function toggleAS() {
+  autoSpeak = !autoSpeak;
+  document.getElementById('astog').classList.toggle('on', autoSpeak);
+  toast(autoSpeak ? 'Auto-speak on' : 'Auto-speak off');
+}
+function testVoice() { speak("Hi, I'm Helix, your AI assistant. How can I help you?"); }
+</script>
+</body>
+</html>
